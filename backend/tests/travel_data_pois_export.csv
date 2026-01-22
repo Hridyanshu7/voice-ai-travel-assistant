@@ -1,0 +1,14 @@
+city,id,name,category,rating,duration_min,description
+paris,effiel_tower,Eiffel Tower,landmark,4.8,120,Iconic iron lady.
+paris,louvre,Louvre Museum,museum,4.7,180,Home of the Mona Lisa.
+paris,notre_dame,Notre Dame,landmark,4.7,60,Gothic masterpiece.
+paris,montmartre,Montmartre,neighborhood,4.6,90,Artist village.
+tokyo,senso_ji,Senso-ji,temple,4.8,60,Oldest temple in Tokyo.
+tokyo,shibuya_crossing,Shibuya Crossing,landmark,4.5,30,Busiest crossing.
+tokyo,teamlab,teamLab Borderless,art,4.9,120,Digital art museum.
+delhi,delhi_center,delhi City Center,landmark,,60,Central area of delhi.
+delhi,delhi_museum,delhi Museum,museum,,90,Main museum of delhi.
+delhi,delhi_park,delhi Park,nature,,45,Famous park in delhi.
+jaipur,jaipur_center,jaipur City Center,landmark,,60,Central area of jaipur.
+jaipur,jaipur_museum,jaipur Museum,museum,,90,Main museum of jaipur.
+jaipur,jaipur_park,jaipur Park,nature,,45,Famous park in jaipur.
