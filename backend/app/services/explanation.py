@@ -11,9 +11,7 @@ async def generate_explanation(question: str, context: dict = None) -> str:
     Uses RAG to find relevant facts and OpenRouter to synthesize the answer.
     """
     try:
-        api_key = os.getenv("OPENROUTER_API_KEY")
-        if not api_key:
-             return "I'm sorry, I can't explain that right now (API key missing)."
+        from app.services.claude_api import generate_response_with_claude
         
         # 1. Retrieve Knowledge
         query = question
@@ -23,36 +21,23 @@ async def generate_explanation(question: str, context: dict = None) -> str:
         retrieved_docs = rag_engine.query(query)
         knowledge_text = "\n".join(retrieved_docs) if retrieved_docs else "No specific travel tips found."
 
-        # 2. Synthesize Answer using OpenRouter
-        prompt = f"""You are a travel assistant. Answer the user's question based on the Context provided.
-        
-Context (Travel Tips):
+        # 2. Synthesize Answer using Claude
+        prompt = f"""Based on the Context and Itinerary provided, answer the user's question.
+
+Context (Travel Knowledge):
 {knowledge_text}
         
 Itinerary Context: {context if context else 'None'}
         
 User Question: "{question}"
+
+Instructions:
+- Answer concisely (under 60 words).
+- If the answer isn't in the context, use your general knowledge.
+- Be helpful and maintain a travel-expert tone."""
         
-Answer concisely (under 50 words). If the answer isn't in the context, use general knowledge but mention it's general advice."""
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "google/gemini-2.0-flash-exp:free",
-                    "messages": [{"role": "user", "content": prompt}]
-                }
-            )
-            
-            if response.status_code != 200:
-                return "I'm having trouble generating an answer right now. Please try again in a moment."
-            
-            result = response.json()
-            return result["choices"][0]["message"]["content"].strip()
+        answer = await generate_response_with_claude(prompt)
+        return answer or "I'm sorry, I couldn't generate an answer right now."
 
     except Exception as e:
         logger.error(f"Explanation error: {str(e)}")

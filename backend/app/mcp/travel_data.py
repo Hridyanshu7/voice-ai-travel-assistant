@@ -42,28 +42,20 @@ async def search_pois(city: str, interests: List[str] = None, category: str = "a
     except Exception as e:
         logger.error(f"Paid API error: {e}")
     
-    # Final fallback: AI generation (multi-model)
-    logger.warning(f"All APIs failed (or returned empty), using AI generation for {city}")
+    # Final fallback: AI generation (Claude 3.5 Sonnet)
+    logger.warning(f"All base APIs failed, using Claude for {city} {category}")
     
-    all_ai_pois = []
-    
-    # 1. Try Claude first (User requested)
     try:
         from app.services.claude_api import generate_pois_with_claude
         claude_data = await generate_pois_with_claude(city, interests, category)
         if claude_data:
-            claude_pois = transform_raw_to_pois(claude_data, "claude")
-            all_ai_pois.extend(claude_pois)
-            logger.info(f"Claude generated {len(claude_pois)} POIs")
+            pois = transform_raw_to_pois(claude_data, "claude-ai")
+            logger.info(f"Claude generated {len(pois)} POIs")
+            return pois
     except Exception as e:
-        logger.error(f"Claude generation failed: {e}")
+        logger.error(f"Claude POI generation failed: {e}")
 
-    # 2. Try Gemini (either as secondary or if Claude failed)
-    if not all_ai_pois:
-        gemini_pois = await generate_pois_with_ai(city, interests, category)
-        all_ai_pois.extend(gemini_pois)
-        
-    return all_ai_pois
+    return []
 
 
 def transform_raw_to_pois(raw_data: List[Dict], source_prefix: str) -> List[POI]:
@@ -90,81 +82,10 @@ def transform_raw_to_pois(raw_data: List[Dict], source_prefix: str) -> List[POI]
                 details=details
             )
             pois.append(poi)
-        except Exception:
+        except KeyError as e:
+            logger.warning(f"Skipping malformed POI item due to missing key: {e} in {item}")
+            continue
+        except Exception as e:
+            logger.error(f"Error transforming POI item: {e} in {item}")
             continue
     return pois
-
-
-async def generate_pois_with_ai(city: str, interests: List[str] = None, category: str = "attractions") -> List[POI]:
-    """
-    AI-based POI generation as final fallback.
-    """
-    import google.generativeai as genai
-    import json
-    import time
-    
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        logger.error("No API key available for AI generation")
-        return []
-    
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        
-        prompt = f"""Generate a JSON array of 10 {category} in {city}.
-        
-For each item, provide:
-- name: string
-- category: "{category}"
-- rating: float (1-5)
-- location: {{"lat": float, "lng": float}}
-- details: {{
-    "description": string,
-    "timings": string,
-    "cost": string,
-    "tips": string
-  }}
-
-Return ONLY valid JSON array, no markdown."""
-
-        # Retry logic for rate limits
-        for attempt in range(2):
-            try:
-                response = model.generate_content(prompt)
-                text = response.text.replace("```json", "").replace("```", "").strip()
-                data = json.loads(text)
-                
-                pois = []
-                for i, item in enumerate(data):
-                    # Handle location field mapping (lng -> lon)
-                    loc_data = item.get("location", {})
-                    lat = loc_data.get("lat", 0.0)
-                    lon = loc_data.get("lon") or loc_data.get("lng") or 0.0
-                    
-                    details = item.get("details", {})
-                    description = details.get("description", "")
-                    
-                    poi = POI(
-                        id=f"ai-poi-{int(time.time())}-{i}",
-                        name=item["name"],
-                        category=item["category"],
-                        description=description,
-                        rating=item.get("rating", 4.0),
-                        location=GeoPoint(lat=lat, lon=lon),
-                        details=details
-                    )
-                    pois.append(poi)
-                
-                logger.info(f"AI generated {len(pois)} POIs for {city}")
-                return pois
-                
-            except Exception as e:
-                if "429" in str(e) and attempt < 1:
-                    time.sleep(2)
-                    continue
-                raise e
-                
-    except Exception as e:
-        logger.error(f"AI generation failed: {e}")
-        return []
