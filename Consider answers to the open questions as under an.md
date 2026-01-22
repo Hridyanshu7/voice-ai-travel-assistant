@@ -1,4 +1,4 @@
-# Consider answers to the open questions as under and rewrite the PRD -
+# Initial User Prompt for generating PRD
 
 Should the itinerary editing flow introduce explicit “lock” controls so users can mark certain POIs/blocks as “don’t change” before edits?
 Sure, if it doesn't take too much of effort in development.
