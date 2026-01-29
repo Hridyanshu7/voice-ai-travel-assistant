@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from dotenv import load_dotenv
@@ -149,7 +149,7 @@ async def explain_endpoint(input: TextInput):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate-pdf")
-async def generate_pdf_endpoint(itinerary: dict):
+async def generate_pdf_endpoint(itinerary: dict, background_tasks: BackgroundTasks):
     """
     Endpoint to generate PDF for the given itinerary.
     """
@@ -159,7 +159,10 @@ async def generate_pdf_endpoint(itinerary: dict):
         
         file_path = generate_pdf(itinerary)
         
-        return FileResponse(file_path, media_type='application/pdf', filename="my_trip.pdf")
+        # Schedule file deletion after response is sent
+        background_tasks.add_task(os.remove, file_path)
+        
+        return FileResponse(file_path, media_type='application/pdf', filename="trip_itinerary.pdf")
     except Exception as e:
         logger.error(f"PDF generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

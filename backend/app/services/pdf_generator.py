@@ -134,6 +134,7 @@ def generate_pdf(itinerary_data: dict, filename: str = "itinerary.pdf") -> str:
         pdf.ln(5)
 
     # FINAL ADVICE
+    # FINAL ADVICE
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(44, 62, 80)
@@ -142,8 +143,13 @@ def generate_pdf(itinerary_data: dict, filename: str = "itinerary.pdf") -> str:
     pdf.set_text_color(60, 60, 60)
     pdf.multi_cell(0, 6, safe_text("• Keep some cash handy for small vendors.\n• Download an offline map of the city.\n• Respect local dress codes at religious sites.\n• Stay hydrated and enjoy the journey!"))
 
-    pdf_dir = "pdfs"
-    os.makedirs(pdf_dir, exist_ok=True)
-    output_path = os.path.join(pdf_dir, filename)
+    # Use system temp directory and unique filename
+    import tempfile
+    import uuid
+    
+    unique_filename = f"itinerary_{uuid.uuid4()}.pdf"
+    temp_dir = tempfile.gettempdir()
+    output_path = os.path.join(temp_dir, unique_filename)
+    
     pdf.output(output_path)
     return output_path
