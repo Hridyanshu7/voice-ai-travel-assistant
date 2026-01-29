@@ -17,7 +17,7 @@ load_dotenv()
 app = FastAPI(title="Voice Travel Assistant API")
 
 # Configure CORS for frontend access
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8000,https://voice-ai-travel-assistant.vercel.app").split(",")
 
 app.add_middleware(
     CORSMiddleware,
