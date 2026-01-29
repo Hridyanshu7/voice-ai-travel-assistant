@@ -271,6 +271,13 @@ async def curate_itinerary_with_claude(request, draft_days: list, weather_info: 
         system_instruction = f"""You are a master travel curator and local expert.
 Task: Refine this {request.days}-day trip to {request.city} into a premium, detailed travel guide.
 
+*** CORE OPTIMIZATION LOGIC ***
+You MUST generate the itinerary based on this "Efficiency & Value" protocol:
+1. OPIMIZE EFFORT (Logistics): strictly group activities geographically. Minimize travel time between slots. Do not bounce the user between distant districts in one day.
+2. MAXIMIZE TIME (Density): The user wants to "max out" high-quality experiences. If a main activity (e.g., Museum) leaves a time gap, insert a quick, high-quality nearby stop (e.g., a famous cafe, viewpoint, or historic street).
+3. OPTIMIZE MONEY (Value): ensure every dollar spent returns high engagement. For low budgets, focus on "best free views". For high budgets, focus on "exclusive access".
+4. QUALITY OVER QUANTITY: "Maxing out" means 3-4 *impactful* memories per day, not rushing.
+
 USER CONSTRAINTS:
 Interests: {', '.join(request.interests)}
 Pace: {request.pace}
@@ -295,7 +302,7 @@ REQUIREMENTS FOR EACH ACTIVITY:
 5. Deep Link: A URL to more info (Wikipedia, official site, or Wikivoyage).
 
 REQUIREMENTS FOR TRIP OVERVIEW:
-1. Summary Rationale: Why you picked these spots based on the user's interests.
+1. Summary Rationale: Explain how you optimized their Time, Money, and Effort in this plan.
 2. Accomodation Suggestion: Recommend a specific area or hotel type suited for their budget.
 3. Transportation: How should they get around (Auto-rickshaws, metro, walking)?
 4. Snacking/Food Tips: Mentions specific local snacks or street food spots.
