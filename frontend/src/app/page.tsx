@@ -244,7 +244,7 @@ export default function Home() {
         setTimeout(() => {
           document.body.removeChild(a);
           window.URL.revokeObjectURL(url);
-        }, 100);
+        }, 60000);
 
         console.log("Markdown download triggered successfully");
       } else {

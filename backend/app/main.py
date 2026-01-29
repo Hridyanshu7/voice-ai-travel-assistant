@@ -162,7 +162,12 @@ async def generate_markdown_endpoint(itinerary: dict, background_tasks: Backgrou
         # Schedule file deletion after response is sent
         background_tasks.add_task(os.remove, file_path)
         
-        return FileResponse(file_path, media_type='text/markdown', filename="trip_itinerary.md")
+        return FileResponse(
+            file_path, 
+            media_type='text/markdown', 
+            filename="trip_itinerary.md",
+            headers={"Content-Disposition": 'attachment; filename="trip_itinerary.md"'}
+        )
     except Exception as e:
         logger.error(f"Markdown generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
