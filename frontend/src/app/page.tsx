@@ -211,24 +211,45 @@ export default function Home() {
 
   const downloadPDF = async () => {
     try {
+      console.log("Starting PDF download...");
       const response = await fetch(`${API_BASE}/api/generate-pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(itinerary),
       });
 
+      console.log("PDF response status:", response.status);
+
       if (response.ok) {
         const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
+        console.log("PDF blob size:", blob.size, "type:", blob.type);
+
+        const pdfBlob = blob.type === 'application/pdf'
+          ? blob
+          : new Blob([blob], { type: 'application/pdf' });
+
+        const url = window.URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = "trip_itinerary.pdf";
+        a.download = `${itinerary.trip_title || 'trip'}_itinerary.pdf`;
+        a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
-        a.remove();
+
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+
+        console.log("PDF download triggered successfully");
+      } else {
+        const errorText = await response.text();
+        console.error("PDF generation failed:", response.status, errorText);
+        alert("Failed to generate PDF. Please try again.");
       }
     } catch (error) {
       console.error("PDF download error:", error);
+      alert("Error downloading PDF. Please check your connection and try again.");
     }
   };
 
