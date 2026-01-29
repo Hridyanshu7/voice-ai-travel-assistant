@@ -54,51 +54,97 @@ async def build_itinerary(request: BuildItineraryRequest) -> Itinerary:
         logger.error(f"Error fetching POIs: {e}")
         pois = []
     
-    # 2. Create a fallback POI if we have no POIs at all
-    if not pois or len(pois) == 0:
-        logger.warning(f"No POIs found for {request.city}, using fallback")
-        fallback_poi = POI(
-            id="fallback-1",
-            name=f"Explore {request.city}",
-            category="exploration",
-            description=f"Free time to explore {request.city} at your own pace. Discover local hidden gems and enjoy the atmosphere.",
-            location=GeoPoint(lat=0.0, lon=0.0),
-            average_duration_minutes=120,
-            rating=4.5,
-            details={"cost": "Free", "tips": "Try local street food!"}
-        )
-        pois = [fallback_poi]
+    # 2. Ensure enough unique POIs (No "Explore City" loops)
+    # We need roughly 2 attractions per day (Morning/Afternoon) + 1 dinner spot
+    needed_attractions = request.days * 2
     
-    # 3. Distribute POIs across days (Initial draft)
+    if len(pois) < needed_attractions:
+        missing_count = needed_attractions - len(pois)
+        logger.info(f"Insufficient POIs ({len(pois)}/{needed_attractions}). Generating {missing_count} more via Claude.")
+        
+        try:
+            from app.services.claude_api import generate_pois_with_claude
+            from app.mcp.travel_data import transform_raw_to_pois
+            
+            # Ask Claude specifically for 'hidden gems' or 'top rated' to fill gaps
+            generated_data = await generate_pois_with_claude(
+                request.city, 
+                interests=request.interests, 
+                category="attractions"
+            )
+            
+            if generated_data:
+                new_pois = transform_raw_to_pois(generated_data, "generated")
+                # Filter out duplicates by name
+                existing_names = {p.name.lower() for p in pois}
+                for p in new_pois:
+                    if p.name.lower() not in existing_names:
+                        pois.append(p)
+                        if len(pois) >= needed_attractions:
+                            break
+        except Exception as e:
+            logger.error(f"Failed to generate backup POIs: {e}")
+
+    # Fallback: If still empty (API down + Claude fail), use a generic list but distinct ones
+    if not pois:
+        pois = [
+            POI(id="fb1", name=f"Old Town {request.city}", category="walking", description="Historic center walk", location=GeoPoint(lat=0,lon=0)),
+            POI(id="fb2", name=f"{request.city} City Park", category="nature", description="Central park visit", location=GeoPoint(lat=0,lon=0)),
+            POI(id="fb3", name=f"{request.city} Museum", category="culture", description="Main cultural museum", location=GeoPoint(lat=0,lon=0))
+        ]
+
+    # 3. Distribute POIs across days
     try:
-        # Also fetch some dining options for the Evening slots
         restaurants = await search_pois(city=request.city, interests=request.interests, category="restaurants")
+        # If no restaurants, generate some!
+        if not restaurants:
+             from app.services.claude_api import generate_pois_with_claude
+             from app.mcp.travel_data import transform_raw_to_pois
+             r_data = await generate_pois_with_claude(request.city, interests=["local food"], category="restaurants")
+             if r_data:
+                 restaurants = transform_raw_to_pois(r_data, "generated-food")
     except:
         restaurants = []
         
     days: List[DayItinerary] = []
-    attraction_index = 0
-    restaurant_index = 0
+    
+    # Create a safe iterator that doesn't repeat until exhausted
+    poi_iter = iter(pois * (request.days + 1)) # Extend list just in case
+    rest_iter = iter(restaurants * (request.days + 1)) if restaurants else None
     
     for d in range(1, request.days + 1):
         blocks = []
         time_slots = ["Morning", "Afternoon", "Evening"]
         
         for slot in time_slots:
-            if slot == "Evening" and restaurants:
-                poi = restaurants[restaurant_index % len(restaurants)]
-                restaurant_index += 1
-            else:
-                poi = pois[attraction_index % len(pois)]
-                attraction_index += 1
+            current_poi = None
+            
+            if slot == "Evening":
+                if rest_iter:
+                    try:
+                        current_poi = next(rest_iter)
+                    except StopIteration:
+                        pass
                 
-            blocks.append(ItineraryBlock(
-                time_block=slot,
-                poi=poi,
-                start_time="09:00 AM" if slot == "Morning" else "01:00 PM" if slot == "Afternoon" else "07:00 PM",
-                end_time="12:00 PM" if slot == "Morning" else "05:00 PM" if slot == "Afternoon" else "10:00 PM",
-                travel_time_from_previous="30 mins" if slot != "Morning" else None
-            ))
+                # If no restaurant, try to grab a night attraction or fallback
+                if not current_poi:
+                     current_poi = POI(id=f"dinner-{d}", name="Local Dinner Experience", category="food", description="Enjoy local cuisine at a nearby rated restaurant.", location=GeoPoint(lat=0,lon=0))
+            else:
+                # Morning / Afternoon
+                try:
+                    current_poi = next(poi_iter)
+                except StopIteration:
+                    # Should unlikely happen due to list extension, but safe fallback
+                    current_poi = pois[0] if pois else None
+            
+            if current_poi:
+                blocks.append(ItineraryBlock(
+                    time_block=slot,
+                    poi=current_poi,
+                    start_time="09:00 AM" if slot == "Morning" else "01:00 PM" if slot == "Afternoon" else "07:00 PM",
+                    end_time="12:00 PM" if slot == "Morning" else "05:00 PM" if slot == "Afternoon" else "10:00 PM",
+                    travel_time_from_previous="30 mins" if slot != "Morning" else None
+                ))
         days.append(DayItinerary(day_number=d, blocks=blocks))
 
     # 4. Optional: Use Claude to curate the final result
