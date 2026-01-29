@@ -441,6 +441,20 @@ export default function Home() {
                 {isPlanning ? 'Generating...' : 'Generate Itinerary'}
               </button>
             )}
+
+            {itinerary && (
+              <button
+                onClick={() => {
+                  setItinerary(null);
+                  const msg = "I've unlocked the planner. You can now update any details (e.g., 'Change to 6 days' or 'Add a museum').";
+                  setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
+                  if (typeof playTTS !== 'undefined') playTTS(msg);
+                }}
+                className="w-full mt-4 border border-violet-200 text-violet-700 bg-violet-50 py-3 rounded-lg font-medium hover:bg-violet-100 transition flex items-center justify-center gap-2"
+              >
+                ✏️ Modify Requirements
+              </button>
+            )}
           </div>
 
           {/* Itinerary Card */}
