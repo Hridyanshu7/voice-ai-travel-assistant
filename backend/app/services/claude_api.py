@@ -286,7 +286,10 @@ Draft Itinerary (Skeleton): {json.dumps(slim_draft)}
 
 REQUIREMENTS FOR EACH ACTIVITY:
 1. Precise Timings (e.g., 09:00 AM - 11:30 AM).
-2. Deep Description: Explain WHY this is a must-see and what to look for.
+2. Deep Description: You MUST structured the description to cover these 3 points:
+   - **Significance**: Why this place matters historically or culturally.
+   - **Why Chosen**: Why this fits the user's specific interests (e.g., "Chosen because you love history...").
+   - **Best Use**: Practical pointers on how to maximize the experience (e.g., "Walk to the back for the best view").
 3. Activity Cost: Specific estimate (e.g., "Rs. 500 Entry" or "Free").
 4. Local Tip: A secret "pro-tip" to avoid crowds, save money, or find a hidden gem.
 5. Deep Link: A URL to more info (Wikipedia, official site, or Wikivoyage).

@@ -101,7 +101,7 @@ export function ItineraryView({ itinerary }: ItineraryViewProps) {
                                         <h3 className="font-medium text-slate-800 text-lg">{block.poi?.name || "Relax"}</h3>
                                         <span className="text-xs px-2 py-1 bg-white rounded border text-slate-500">{block.poi?.category}</span>
                                     </div>
-                                    <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                                    <p className="text-sm text-slate-600 mt-2 leading-relaxed whitespace-pre-line">
                                         {block.poi?.description}
                                     </p>
                                     <div className="mt-3 flex gap-4 text-xs text-slate-500">
