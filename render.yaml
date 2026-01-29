@@ -1,0 +1,70 @@
+# Render Blueprint Configuration
+# This file ensures your deployment configuration is version-controlled
+# and automatically applied on every deployment
+
+services:
+  # Backend FastAPI Service
+  - type: web
+    name: voice-ai-travel-assistant
+    runtime: python
+    region: oregon  # Change to your preferred region
+    plan: free  # Change to 'starter' or higher for production
+    branch: main
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    
+    # Health check endpoint
+    healthCheckPath: /health
+    
+    # Environment Variables
+    envVars:
+      # CORS Configuration - includes both local and production URLs
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:3000,http://localhost:8000,https://voice-ai-travel-assistant.vercel.app
+      
+      # API Keys - These should be added via Render Dashboard for security
+      # Mark sync: false to prevent them from being overwritten by this file
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Set manually in Render Dashboard
+      
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in Render Dashboard
+      
+      - key: DEEPGRAM_API_KEY
+        sync: false  # Set manually in Render Dashboard
+      
+      - key: ELEVENLABS_API_KEY
+        sync: false  # Set manually in Render Dashboard
+      
+      # Optional API Keys (if you use them)
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      
+      - key: OPENTRIPMAP_API_KEY
+        sync: false
+      
+      - key: AMADEUS_API_KEY
+        sync: false
+      
+      - key: AMADEUS_API_SECRET
+        sync: false
+      
+      # MCP URLs (if you deploy MCP servers separately)
+      - key: TRAVEL_DATA_MCP_URL
+        value: http://localhost:8001
+      
+      - key: ITINERARY_MCP_URL
+        value: http://localhost:8002
+      
+      # Python Environment
+      - key: PYTHON_VERSION
+        value: 3.11.5
+
+# Note: Frontend (Next.js) should be deployed separately on Vercel
+# Vercel Configuration:
+# - Root Directory: frontend
+# - Framework Preset: Next.js
+# - Build Command: npm run build
+# - Output Directory: .next
+# - Environment Variable: NEXT_PUBLIC_API_URL=https://voice-ai-travel-assistant.onrender.com
