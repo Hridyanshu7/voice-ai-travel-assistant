@@ -256,65 +256,69 @@ async def curate_itinerary_with_claude(request, draft_days: list, weather_info: 
         if not api_key:
             return None
 
-        # Prepare a slim version of the draft for the prompt
-        slim_draft = []
+        # Prepare a rich version of the draft for the prompt
+        rich_draft = []
         for d in draft_days:
             day_info = {"day": d.day_number, "activities": []}
             for b in d.blocks:
+                # Include ALL available data from our sources
                 day_info["activities"].append({
                     "slot": b.time_block,
                     "name": b.poi.name,
-                    "desc": b.poi.description
+                    "category": b.poi.category,
+                    "rating": b.poi.rating,
+                    "source_desc": b.poi.description,
+                    "source_details": b.poi.details
                 })
-            slim_draft.append(day_info)
+            rich_draft.append(day_info)
 
         system_instruction = f"""You are a master travel curator and local expert.
 Task: Refine this {request.days}-day trip to {request.city} into a premium, detailed travel guide.
 
 *** CORE OPTIMIZATION LOGIC ***
 You MUST generate the itinerary based on this "Efficiency & Value" protocol:
-1. OPIMIZE EFFORT (Logistics): strictly group activities geographically. Minimize travel time between slots. Do not bounce the user between distant districts in one day.
-2. MAXIMIZE TIME (Density): The user wants to "max out" high-quality experiences. If a main activity (e.g., Museum) leaves a time gap, insert a quick, high-quality nearby stop (e.g., a famous cafe, viewpoint, or historic street).
-3. OPTIMIZE MONEY (Value): ensure every dollar spent returns high engagement. For low budgets, focus on "best free views". For high budgets, focus on "exclusive access".
-4. QUALITY OVER QUANTITY: "Maxing out" means 3-4 *impactful* memories per day, not rushing.
+1. OPIMIZE EFFORT (Logistics): strictly group activities geographically. Minimize travel time between slots.
+2. MAXIMIZE TIME (Density): The user wants to "max out" high-quality experiences. If a main activity leaves a time gap, insert a quick, high-quality nearby stop.
+3. OPTIMIZE MONEY (Value): ensure every dollar spent returns high engagement.
+4. QUALITY OVER QUANTITY: "Maxing out" means 3-4 *impactful* memories per day.
 
 USER CONSTRAINTS:
 Interests: {', '.join(request.interests)}
 Pace: {request.pace}
 Budget: {request.budget}
 Must Visit: {', '.join(request.must_visit) if request.must_visit else 'None specified'}
-Solo/Group: {'Solo Traveler' if 'solo' in str(request).lower() else 'Group Trip'}
 
 CONTEXT:
 Weather: {weather_info}
 City Overview: {city_summary[:500]}...
 
-Draft Itinerary (Skeleton): {json.dumps(slim_draft)}
+Draft Itinerary (Skeleton with raw data): {json.dumps(rich_draft)}
 
 REQUIREMENTS FOR EACH ACTIVITY:
 1. Precise Timings (e.g., 09:00 AM - 11:30 AM).
-2. Deep Description: You MUST structured the description to cover these 3 points:
-   - **Significance**: Why this place matters historically or culturally.
-   - **Why Chosen**: Why this fits the user's specific interests (e.g., "Chosen because you love history...").
-   - **Best Use**: Practical pointers on how to maximize the experience (e.g., "Walk to the back for the best view").
-3. Activity Cost: Specific estimate (e.g., "Rs. 500 Entry" or "Free").
+2. Deep Qualitative Description: You MUST structured the description to cover these 4 points using Markdown bolding:
+   - **Significance & Vibe**: The historical/cultural importance, plus the "vibe" (e.g., "Chaotic but thrilling").
+   - **Reviewer Verdict**: Synthesize insights from traveler reviews (e.g., "Travelers love the sunset view but warn about the queues").
+   - **Why Chosen**: Specific rationale for THIS user and THIS time slot (e.g., "Scheduled for morning to beat the crowds").
+   - **Best Use**: Strategic advice (e.g., "Enter via the East Gate," "Order the signature matcha latte").
+3. Activity Cost: Specific estimate.
 4. Local Tip: A secret "pro-tip" to avoid crowds, save money, or find a hidden gem.
-5. Deep Link: A URL to more info (Wikipedia, official site, or Wikivoyage).
+5. Deep Link: A URL to more info.
 
 REQUIREMENTS FOR TRIP OVERVIEW:
-1. Summary Rationale: Explain how you optimized their Time, Money, and Effort in this plan.
-2. Accomodation Suggestion: Recommend a specific area or hotel type suited for their budget.
-3. Transportation: How should they get around (Auto-rickshaws, metro, walking)?
-4. Snacking/Food Tips: Mentions specific local snacks or street food spots.
+1. Summary Rationale: Explain how you optimized their Time, Money, and Effort.
+2. Accomodation Suggestion: Recommend a specific area or hotel type.
+3. Transportation: How should they get around?
+4. Snacking/Food Tips: Specific local snacks to try.
 
 Return ONLY a valid JSON object matching this schema:
 {{
     "trip_title": string,
-    "summary_rationale": string (compelling 2-3 sentences),
+    "summary_rationale": string,
     "weather_forecast": string,
     "transportation_tips": string,
     "accommodation_suggestion": string,
-    "total_cost_estimate": string (e.g. Total approx Rs. 5500),
+    "total_cost_estimate": string,
     "days": [
         {{
             "day_number": int,
@@ -329,9 +333,9 @@ Return ONLY a valid JSON object matching this schema:
                     "poi": {{
                         "name": string,
                         "category": string,
-                        "description": string,
+                        "description": string (The 4-point qualitative description),
                         "rating": float,
-                        "source_url": string (deep link),
+                        "source_url": string,
                         "location": {{"lat": float, "lon": float}},
                         "details": {{ "tips": string, "cost": string }}
                     }}
