@@ -209,31 +209,36 @@ export default function Home() {
     }
   };
 
-  const downloadPDF = async () => {
+  const downloadMarkdown = async () => {
     try {
-      console.log("Starting PDF download...");
-      const response = await fetch(`${API_BASE}/api/generate-pdf`, {
+      console.log("Starting Markdown download...");
+      const response = await fetch(`${API_BASE}/api/generate-markdown`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(itinerary),
       });
 
-      console.log("PDF response status:", response.status);
+      console.log("Markdown response status:", response.status);
 
       if (response.ok) {
         const blob = await response.blob();
-        console.log("PDF blob size:", blob.size, "type:", blob.type);
+        console.log("Markdown blob size:", blob.size, "type:", blob.type);
 
-        const pdfBlob = blob.type === 'application/pdf'
-          ? blob
-          : new Blob([blob], { type: 'application/pdf' });
+        // Create blob with markdown type
+        const mdBlob = new Blob([blob], { type: 'text/markdown' });
 
-        const url = window.URL.createObjectURL(pdfBlob);
+        const url = window.URL.createObjectURL(mdBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${itinerary.trip_title || 'trip'}_itinerary.pdf`;
+        // Use trip title for filename, strictly sanitizing it
+        const safeTitle = (itinerary.trip_title || 'my_trip')
+          .replace(/[^a-z0-9]/gi, '_')
+          .toLowerCase();
+
+        a.download = `${safeTitle}.md`;
         a.style.display = 'none';
         document.body.appendChild(a);
+
         a.click();
 
         setTimeout(() => {
@@ -241,15 +246,15 @@ export default function Home() {
           window.URL.revokeObjectURL(url);
         }, 100);
 
-        console.log("PDF download triggered successfully");
+        console.log("Markdown download triggered successfully");
       } else {
         const errorText = await response.text();
-        console.error("PDF generation failed:", response.status, errorText);
-        alert("Failed to generate PDF. Please try again.");
+        console.error("Markdown generation failed:", response.status, errorText);
+        alert("Failed to generate Markdown. Please try again.");
       }
     } catch (error) {
-      console.error("PDF download error:", error);
-      alert("Error downloading PDF. Please check your connection and try again.");
+      console.error("Download error:", error);
+      alert("Error downloading file. Please check your connection.");
     }
   };
 
@@ -445,10 +450,10 @@ export default function Home() {
               <div>
                 <ItineraryView itinerary={itinerary} />
                 <button
-                  onClick={downloadPDF}
-                  className="w-full mt-4 border border-slate-300 text-slate-700 py-2 rounded-lg font-medium hover:bg-slate-50 transition"
+                  onClick={downloadMarkdown}
+                  className="w-full mt-4 border border-slate-300 text-slate-700 py-2 rounded-lg font-medium hover:bg-slate-50 transition flex items-center justify-center gap-2"
                 >
-                  Download PDF
+                  <span className="text-xl">⬇️</span> Download Trip Plan (.md)
                 </button>
               </div>
             ) : (

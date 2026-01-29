@@ -148,21 +148,21 @@ async def explain_endpoint(input: TextInput):
         logger.error(f"Explanation endpoint error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/generate-pdf")
-async def generate_pdf_endpoint(itinerary: dict, background_tasks: BackgroundTasks):
+@app.post("/api/generate-markdown")
+async def generate_markdown_endpoint(itinerary: dict, background_tasks: BackgroundTasks):
     """
-    Endpoint to generate PDF for the given itinerary.
+    Endpoint to generate a Markdown file for the given itinerary.
     """
     try:
-        from app.services.pdf_generator import generate_pdf
+        from app.services.markdown_generator import save_markdown_file
         from fastapi.responses import FileResponse
         
-        file_path = generate_pdf(itinerary)
+        file_path = save_markdown_file(itinerary)
         
         # Schedule file deletion after response is sent
         background_tasks.add_task(os.remove, file_path)
         
-        return FileResponse(file_path, media_type='application/pdf', filename="trip_itinerary.pdf")
+        return FileResponse(file_path, media_type='text/markdown', filename="trip_itinerary.md")
     except Exception as e:
-        logger.error(f"PDF generation error: {str(e)}")
+        logger.error(f"Markdown generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

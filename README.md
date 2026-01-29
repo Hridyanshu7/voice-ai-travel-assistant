@@ -11,7 +11,7 @@ A premium, voice-enabled AI travel companion that builds rich, personalized itin
 - **🗺️ Expert Itinerary Curation**: Uses Claude 3.5 Sonnet to curate multi-page, professional travel guides.
 - **📅 Smart Constraints Extraction**: understands destinations, budgets (e.g., "6,000 INR"), dates, and specific interests from natural speech.
 - **📍 Real-time Knowledge**: Integrates with OpenStreetMap, Wikivoyage, and Open-Meteo for accurate POIs and weather forecasts.
-- **📄 Professional PDF Export**: Generates beautifully formatted travel guides with timing, costs, pro-tips, and deep-dive links.
+- **📄 Portable Markdown Export**: Download your itinerary as a formatted Markdown file, perfect for saving to Notion or Obsidian.
 - **🤖 Adaptive AI**: Multi-layered fallback system using Claude 3.5 Sonnet, Gemini Pro, and local RAG.
 
 ## 🛠️ Technology Stack
